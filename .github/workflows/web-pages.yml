@@ -2,7 +2,7 @@ name: SideStore Web Pages
 
 on:
   push:
-    branches: [web-pwa]
+    branches: [web-pwa, develop]
     paths:
       - 'web/**'
       - '.github/workflows/web-pages.yml'
