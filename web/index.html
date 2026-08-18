@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SideStore Web">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <title>SideStore Web</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">SIDESTORE WEB</div>
+        <h1 id="page-title">Apps</h1>
+      </div>
+      <button class="icon-button" id="install-pwa" hidden aria-label="Install web app">＋</button>
+    </header>
+
+    <main>
+      <section class="view active" data-view="apps">
+        <div class="hero-card">
+          <div>
+            <span class="pill">PWA</span>
+            <h2>Apps, without the local VPN UI.</h2>
+            <p>Manage signed applications from a mobile-first web interface. Signing is delegated to your configured service.</p>
+          </div>
+          <button class="primary" data-go="add">Add IPA</button>
+        </div>
+        <div class="section-head"><h3>My Apps</h3><span id="app-count">0</span></div>
+        <div id="apps-list" class="card-list"></div>
+        <div id="empty-apps" class="empty-state">
+          <div class="empty-icon">＋</div>
+          <h3>No apps yet</h3>
+          <p>Add an IPA locally or connect a signing service.</p>
+          <button class="secondary" data-go="add">Add your first IPA</button>
+        </div>
+      </section>
+
+      <section class="view" data-view="add">
+        <div class="section-head"><h2>Add IPA</h2></div>
+        <label class="upload-zone" for="ipa-file">
+          <input id="ipa-file" type="file" accept=".ipa,application/octet-stream" hidden>
+          <div class="upload-icon">↑</div>
+          <strong>Select an IPA</strong>
+          <span>Stored locally in this browser until you send it to your signing service.</span>
+        </label>
+        <div id="selected-file" class="selected-file" hidden></div>
+
+        <div class="form-card">
+          <label>App name<input id="app-name" placeholder="My App" autocomplete="off"></label>
+          <label>Bundle identifier<input id="bundle-id" placeholder="com.example.app" autocomplete="off"></label>
+          <label>Version<input id="app-version" placeholder="1.0.0" autocomplete="off"></label>
+          <button id="save-app" class="primary">Save app</button>
+        </div>
+
+        <div class="notice">
+          <strong>Signing</strong>
+          <p>The static GitHub Pages client never stores an Apple ID password or 2FA code. Configure a trusted HTTPS signing API in Settings; credentials and verification codes are submitted only to that API.</p>
+        </div>
+      </section>
+
+      <section class="view" data-view="devices">
+        <div class="section-head"><h2>Devices</h2><button class="secondary small" id="refresh-devices">Refresh</button></div>
+        <div id="devices-list" class="card-list"></div>
+        <div id="empty-devices" class="empty-state compact"><h3>No devices</h3><p>Device registration is performed by the configured signing service.</p></div>
+      </section>
+
+      <section class="view" data-view="settings">
+        <div class="section-head"><h2>Settings</h2></div>
+        <div class="form-card">
+          <label>Signing service URL<input id="api-url" type="url" placeholder="https://your-signing-service.example"></label>
+          <button id="save-settings" class="primary">Save settings</button>
+        </div>
+        <div class="form-card">
+          <div class="setting-row"><div><strong>PWA status</strong><span id="pwa-status">Browser mode</span></div><span class="status-dot"></span></div>
+          <button id="clear-local" class="danger">Clear local app data</button>
+        </div>
+        <div class="notice">
+          <strong>Web installation</strong>
+          <p>This site can be added to the iOS Home Screen as a standalone web app. Native IPA installation still depends on Apple's signing/distribution rules and a compatible installation path.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="Main navigation">
+      <button class="tab active" data-tab="apps"><span>⌂</span>Apps</button>
+      <button class="tab" data-tab="add"><span>＋</span>Add</button>
+      <button class="tab" data-tab="devices"><span>▣</span>Devices</button>
+      <button class="tab" data-tab="settings"><span>⚙</span>Settings</button>
+    </nav>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
