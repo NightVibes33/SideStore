@@ -1,0 +1,5 @@
+node_modules/
+*.ipa
+*.mobileprovision
+*.p12
+/tmp/
