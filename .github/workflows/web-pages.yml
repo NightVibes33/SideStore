@@ -3,9 +3,6 @@ name: SideStore Web Pages
 on:
   push:
     branches: [develop]
-    paths:
-      - 'web/**'
-      - '.github/workflows/web-pages.yml'
   workflow_dispatch:
 
 permissions:
