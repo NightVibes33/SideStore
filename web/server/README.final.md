@@ -1,0 +1,1 @@
+The gateway is not the Apple signing implementation itself. It is the production boundary between the public PWA and an authorized signer. This separation is required because GitHub Pages and Safari cannot execute the native Apple signing stack.

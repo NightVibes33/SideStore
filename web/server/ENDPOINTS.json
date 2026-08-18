@@ -1,0 +1,1 @@
+{"jobs":"POST /v1/jobs","verify":"POST /v1/auth/verify","status":"GET /v1/jobs/:id","devices":"GET /v1/devices","manifest":"GET /v1/manifest/:id","ipa":"GET /v1/ipa/:id"}
