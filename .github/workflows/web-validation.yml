@@ -1,0 +1,44 @@
+name: SideStore Web Validation
+
+on:
+  push:
+    branches: [develop, web-final-validation]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-validation.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate browser JavaScript
+        run: node --check web/app.js
+      - name: Validate service worker
+        run: node --check web/sw.js
+      - name: Validate signing gateway JavaScript
+        run: node --check web/server/server.js
+      - name: Validate manifest
+        run: node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('web/manifest.webmanifest','utf8')); for(const k of ['name','short_name','start_url','scope','display','icons']) if(!(k in m)) throw new Error('manifest missing '+k); if(m.display!=='standalone') throw new Error('PWA display must be standalone'); console.log('manifest OK')"
+      - name: Validate required web assets
+        run: |
+          test -f web/index.html
+          test -f web/styles.css
+          test -f web/app.js
+          test -f web/sw.js
+          test -f web/manifest.webmanifest
+          test -f web/icons/icon-192.svg
+          test -f web/icons/icon-512.svg
+          test -f web/server/package.json
+          test -f web/server/server.js
