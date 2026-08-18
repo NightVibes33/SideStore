@@ -1,54 +1,32 @@
-# SideStore Web
+# SideStore Web production signing gateway
 
-Mobile-first PWA companion for the SideStore project. It reproduces the app-library, IPA upload, signing-job, device, verification, and installation workflow in Safari/Home Screen UI while leaving privileged Apple operations to a separate HTTPS signing gateway.
+The static PWA is hosted independently (GitHub Pages is supported). The signing gateway must run on an authorized macOS machine with Xcode command-line tools and an existing Apple development signing identity/provisioning profile.
 
-## GitHub Pages
+## Environment
 
-`.github/workflows/web-pages.yml` publishes `web/` to GitHub Pages. The Pages site is static and contains no Apple credentials.
+- `PUBLIC_ORIGIN`: public HTTPS origin of the gateway
+- `WEB_ORIGIN`: exact HTTPS origin of the PWA
+- `API_TOKEN`: optional bearer token for API protection
+- `SIGNING_IDENTITY`: installed Apple Development signing identity
+- `PROVISION_PROFILE`: path to the matching provisioning profile
+- `SIGNING_WORK_DIR`: optional temporary directory
+- `PORT`: HTTP port
 
-## Signing gateway
+The gateway intentionally does not collect or persist Apple ID passwords or 2FA codes. Apple authentication and device provisioning must be completed through Apple's supported developer tooling on the authorized signing machine.
 
-Run `web/server` on infrastructure that can reach your configured signer. GitHub Pages cannot execute the signing worker itself.
+## Run
 
-```bash
-cd web/server
+```sh
 npm install
-PUBLIC_ORIGIN=https://sign.example.com \
-WEB_ORIGIN=https://owner.github.io \
-SIGNER_URL=http://127.0.0.1:9000 \
+SIGNING_IDENTITY='Apple Development: Example (TEAMID)' \\
+PROVISION_PROFILE='/path/to/profile.mobileprovision' \\
+PUBLIC_ORIGIN='https://sign.example.com' \\
+WEB_ORIGIN='https://<user>.github.io/SideStore' \\
 npm start
 ```
 
-Optional `API_TOKEN` protects the `/v1` routes. The browser sends the IPA as multipart form data. The gateway stores the upload temporarily, forwards job metadata to the signer, and exposes job status, device information, an OTA manifest, and the completed signed IPA.
+The API exposes `/healthz`, `/v1/jobs`, `/v1/jobs/:id`, `/v1/manifest/:id`, `/v1/ipa/:id`, and `/v1/devices`.
 
-### Signer adapter contract
+## OTA
 
-The gateway deliberately does **not** collect or persist an Apple ID password. The `SIGNER_URL` service is responsible for the Apple-account-specific operation and may return:
-
-```json
-{"status":"verification_required","sessionId":"..."}
-```
-
-After the user enters the short-lived verification code, the gateway forwards:
-
-```json
-{"sessionId":"...","code":"..."}
-```
-
-to `POST /v1/auth/verify` on the signer. A successful signing result must return `status: "complete"` and a `signedFile` path accessible to the gateway.
-
-Required adapter endpoints:
-
-- `POST /v1/jobs`
-- `POST /v1/auth/verify`
-- `POST /v1/devices`
-
-The adapter must implement Apple's current authentication, provisioning, and signing requirements. Do not expose Apple passwords or verification codes in logs, URLs, analytics, or persistent browser storage.
-
-## Installation
-
-For a completed job the gateway generates an HTTPS `manifest.plist` and an `itms-services://` installation URL. Whether that installation path is permitted for a particular app/device is determined by Apple's current distribution and provisioning rules; the web UI does not bypass those rules.
-
-## PWA
-
-Safari users can use **Share → Add to Home Screen**. The web manifest and service worker provide standalone Home Screen behavior and offline caching of the application shell.
+For a successfully signed and provisioned IPA, the job response includes an `itms-services://` installation URL backed by an HTTPS manifest and IPA endpoint. The target device still has to satisfy Apple's provisioning/signing requirements; OTA does not bypass those requirements.
