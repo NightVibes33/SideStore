@@ -120,6 +120,11 @@ private extension SceneDelegate
         }
         else
         {
+            if self.handleClassicCydiaSourceURL(context.url)
+            {
+                return
+            }
+
             if ClassicCydiaURLRouter.handle(context.url)
             {
                 return
@@ -127,6 +132,59 @@ private extension SceneDelegate
 
             URLHandler.shared.handle(context.url)
         }
+    }
+
+    /// Supports the classic source-link shape used by Cydia repositories:
+    /// cydia://url/https://repo.example.com and its percent-encoded variant.
+    /// The parsed HTTP(S) URL is forwarded to SideStore's existing source-add flow.
+    func handleClassicCydiaSourceURL(_ url: URL) -> Bool
+    {
+        guard url.scheme?.lowercased() == "cydia",
+              url.host?.lowercased() == "url" else { return false }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let querySource = components?.queryItems?
+            .first(where: { ["url", "source"].contains($0.name.lowercased()) })?
+            .value
+
+        let prefix = "cydia://url/"
+        let absolute = url.absoluteString
+        let pathSource: String?
+        if absolute.lowercased().hasPrefix(prefix), absolute.count > prefix.count
+        {
+            let start = absolute.index(absolute.startIndex, offsetBy: prefix.count)
+            let suffix = String(absolute[start...])
+            pathSource = suffix.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init)
+        }
+        else
+        {
+            pathSource = nil
+        }
+
+        guard let rawSource = querySource ?? pathSource,
+              !rawSource.isEmpty else
+        {
+            debugLog("[ClassicCydiaURLRouter] cydia://url link missing source URL: \(url.absoluteString)")
+            return true
+        }
+
+        let decodedSource = rawSource.removingPercentEncoding ?? rawSource
+        guard let sourceURL = URL(string: decodedSource),
+              let scheme = sourceURL.scheme?.lowercased(),
+              scheme == "https" || scheme == "http",
+              sourceURL.host != nil else
+        {
+            debugLog("[ClassicCydiaURLRouter] Rejected invalid source URL: \(decodedSource)")
+            return true
+        }
+
+        debugLog("[ClassicCydiaURLRouter] Adding classic source URL: \(sourceURL.absoluteString)")
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: AppDelegate.addSourceDeepLinkNotification,
+                                            object: nil,
+                                            userInfo: [AppDelegate.addSourceDeepLinkURLKey: sourceURL])
+        }
+        return true
     }
 }
 
