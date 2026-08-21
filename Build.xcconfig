@@ -22,6 +22,11 @@ MAIN_BUNDLE_IDENTIFIER[config=Release]          = $(BASE_BUNDLE_ID)
 APP_GROUP_IDENTIFIER                            = $(MAIN_BUNDLE_IDENTIFIER)
 ICLOUD_CONTAINER_IDENTIFIER                     = iCloud.$(ORG_IDENTIFIER).$(PROJECT_NAME)
 
+// Xcode 26.2 can hit its default constraint-solver time limit on the existing
+// ODAInfo Codable fallback chain. Keep source semantics unchanged while allowing
+// the compiler enough time to solve that expression.
+OTHER_SWIFT_FLAGS = $(inherited) -Xfrontend -solver-expression-time-threshold=60000
+
 // Suppress noise from os activity in xcode console log for release builds
 DEBUG_ACTIVITY_MODE = disable
 
