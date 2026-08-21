@@ -173,6 +173,7 @@ extension BrowseViewController
     {
         self.loadViewIfNeeded()
         self.title = NSLocalizedString("Search", comment: "")
+        self.navigationItem.titleView = nil
         self.navigationItem.searchController?.isActive = true
 
         guard let query, !query.isEmpty else
