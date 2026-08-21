@@ -36,15 +36,21 @@ public struct ODAInfo: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.sha256 = (try? container.decodeIfPresent(String.self, forKey: .sha256))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .sha))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .s))
+        let decodeString: (CodingKeys) -> String? = { key in
+            try? container.decodeIfPresent(String.self, forKey: key)
+        }
 
-        let lVal = (try? container.decodeIfPresent(String.self, forKey: .l))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .libraries))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .payload))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .data))
-        let urlVal = try? container.decodeIfPresent(String.self, forKey: .url)
+        let sha256Value = decodeString(.sha256)
+        let shaValue = decodeString(.sha)
+        let shortSHAValue = decodeString(.s)
+        self.sha256 = sha256Value ?? shaValue ?? shortSHAValue
+
+        let compactLibrariesValue = decodeString(.l)
+        let librariesValue = decodeString(.libraries)
+        let payloadValue = decodeString(.payload)
+        let dataValue = decodeString(.data)
+        let lVal = compactLibrariesValue ?? librariesValue ?? payloadValue ?? dataValue
+        let urlVal = decodeString(.url)
 
         if let raw = lVal ?? urlVal {
             if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
