@@ -261,9 +261,9 @@ extension AppBannerView
                 self.button.countdownDate = nil
                 
             case .update:
-                let buttonTitle = NSLocalizedString("Update", comment: "")
+                let buttonTitle = NSLocalizedString("Upgrade", comment: "")
                 self.button.setTitle(buttonTitle.uppercased(), for: .normal)
-                self.button.accessibilityLabel = String(format: NSLocalizedString("Update %@", comment: ""), values.name)
+                self.button.accessibilityLabel = String(format: NSLocalizedString("Upgrade %@", comment: ""), values.name)
                 self.button.accessibilityValue = buttonTitle
                 
                 self.button.countdownDate = nil
@@ -299,9 +299,9 @@ extension AppBannerView
                 {
                     // Free app
                     
-                    let buttonTitle = NSLocalizedString("Free", comment: "")
+                    let buttonTitle = NSLocalizedString("Install", comment: "")
                     self.button.setTitle(buttonTitle.uppercased(), for: .normal)
-                    self.button.accessibilityLabel = String(format: NSLocalizedString("Download %@", comment: ""), app.name)
+                    self.button.accessibilityLabel = String(format: NSLocalizedString("Install %@", comment: ""), app.name)
                     self.button.accessibilityValue = buttonTitle
                 }
                 
