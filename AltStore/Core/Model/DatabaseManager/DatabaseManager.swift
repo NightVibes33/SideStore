@@ -155,6 +155,17 @@ public class DatabaseManager
                 self.startCompletionHandlers.removeAll()
             }
         }
+
+        func prepareLoadedDatabase()
+        {
+            self.prepareDatabase() { (result) in
+                switch result
+                {
+                case .failure(let error): finish(error)
+                case .success: finish(nil)
+                }
+            }
+        }
         
         self.dispatchQueue.async {
             self.startCompletionHandlers.append(completionHandler)
@@ -191,16 +202,17 @@ public class DatabaseManager
                 {
                 case .failure(let error): finish(error)
                 case .success:
-                    self.persistentContainer.loadPersistentStores { (description, error) in
-                        guard error == nil else { return finish(error!) }
-                        
-                        self.prepareDatabase() { (result) in
-                            switch result
-                            {
-                            case .failure(let error): finish(error)
-                            case .success: finish(nil)
-                            }
+                    if self.persistentContainer.persistentStoreCoordinator.persistentStores.isEmpty
+                    {
+                        self.persistentContainer.loadPersistentStores { (_, error) in
+                            guard error == nil else { return finish(error!) }
+                            prepareLoadedDatabase()
                         }
+                    }
+                    else
+                    {
+                        debugLog("[DatabaseManager] Persistent store already loaded; skipping duplicate load during startup retry.")
+                        prepareLoadedDatabase()
                     }
                 }
             }
