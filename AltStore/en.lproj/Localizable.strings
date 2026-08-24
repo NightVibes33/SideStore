@@ -1,0 +1,11 @@
+/* Cydia Classic presentation overrides.
+   SideStore implementation/support identifiers intentionally remain unchanged. */
+
+"Sign in with your Apple ID to download apps from SideStore." = "Sign in with your Apple ID to download apps from Cydia.";
+"Support the SideStore Team by following our socials or becoming a patron!" = "Support the upstream SideStore team by following their socials or becoming a patron!";
+"Personalize your SideStore experience by choosing an alternate app icon." = "Personalize your Cydia experience with the classic app icon.";
+"Are you sure you want to clear SideStore's cache?\n\nCache Size: %@" = "Are you sure you want to clear Cydia's cache?\n\nCache Size: %@";
+"You can reset the pairing file when you cannot sideload apps or enable JIT. You need to restart SideStore." = "You can reset the pairing file when you cannot sideload apps or enable JIT. You need to restart Cydia.";
+"Please restart SideStore" = "Please restart Cydia";
+"Sources determine what apps are available in SideStore. The more sources you add, the better your SideStore experience will be.\n\nDon’t know where to start? Try adding one of our Recommended Sources!" = "Sources determine what apps are available in Cydia. The more sources you add, the more apps you can browse and install.\n\nDon’t know where to start? Try adding one of the Recommended Sources!";
+"“%@” could not be added to SideStore." = "“%@” could not be added to Cydia.";

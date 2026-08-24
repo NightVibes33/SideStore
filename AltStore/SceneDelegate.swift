@@ -21,9 +21,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions)
     {
         debugLog("[SceneDelegate] scene(willConnectTo:) invoked")
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let _ = (scene as? UIWindowScene) else { return }
         
         if let context = connectionOptions.urlContexts.first
@@ -34,13 +31,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
 
     func sceneWillEnterForeground(_ scene: UIScene)
     {
-        // Called as the scene transitions from the foreground to the background.
-        // Use this method to undo the changes made on entering the background.
-        
-        // applicationWillEnterForeground is _not_ called when launching app,
-        // whereas sceneWillEnterForeground _is_ called when launching.
-        // As a result, DatabaseManager might not be started yet, so just return if it isn't
-        // (since all these methods are called separately during app startup).
         guard DatabaseManager.shared.isStarted else { return }
         
         Task {
@@ -53,7 +43,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
     {
         debugLog("[SceneDelegate] sceneDidBecomeActive() invoked")
         defer {
-            // dump sidebackup logs if any
             Task.detached { await AppDelegate.dumpSideBackupLogsIfNeeded() }
         }
         
@@ -63,7 +52,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
             }
         }
         
-        // Flush any .ipa import that arrived before the scene was active (cold launch).
         guard let url = self.pendingImportIPAURL else { return }
         self.pendingImportIPAURL = nil
         NotificationCenter.default.post(name: AppDelegate.importAppDeepLinkNotification, object: nil, userInfo: [AppDelegate.importAppDeepLinkURLKey: url])
@@ -71,14 +59,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
 
     func sceneDidEnterBackground(_ scene: UIScene)
     {
-        // Called as the scene transitions from the foreground to the background.
-        // Use this method to save data, release shared resources, and store enough scene-specific state information
-        // to restore the scene back to its current state.
-        
         guard UIApplication.shared.applicationState == .background else { return }
-        
-        // Make sure to update AppDelegate.applicationDidEnterBackground() as well.
-
         guard let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) else { return }
         
         let midnightOneMonthAgo = Calendar.current.startOfDay(for: oneMonthAgo)
@@ -89,7 +70,6 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
             case .failure(let error): debugLog("[ALTLog] Failed to purge logged errors before \(midnightOneMonthAgo). \(error)")
             }
         }
-        
     }
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
@@ -109,8 +89,6 @@ private extension SceneDelegate
         {
             guard context.url.pathExtension.lowercased() == "ipa" else { return }
 
-            // Copy the shared .ipa out of its security-scoped location into a
-            // temporary directory we own, so it stays readable while signing.
             if !context.url.startAccessingSecurityScopedResource() {
                 debugLog("[ALTLog] Failed to access security-scoped resource for imported IPA")
                 return
@@ -137,14 +115,76 @@ private extension SceneDelegate
             if UIApplication.shared.applicationState == .active {
                 NotificationCenter.default.post(name: AppDelegate.importAppDeepLinkNotification, object: nil, userInfo: [AppDelegate.importAppDeepLinkURLKey: ipa])
             } else {
-                // Defer until the scene is active (cold launch) — see sceneDidBecomeActive.
                 self.pendingImportIPAURL = ipa
             }
         }
         else
         {
+            if self.handleClassicCydiaSourceURL(context.url)
+            {
+                return
+            }
+
+            if ClassicCydiaURLRouter.handle(context.url)
+            {
+                return
+            }
+
             URLHandler.shared.handle(context.url)
         }
+    }
+
+    /// Supports the classic source-link shape used by Cydia repositories:
+    /// cydia://url/https://repo.example.com and its percent-encoded variant.
+    /// The parsed HTTP(S) URL is forwarded to SideStore's existing source-add flow.
+    func handleClassicCydiaSourceURL(_ url: URL) -> Bool
+    {
+        guard url.scheme?.lowercased() == "cydia",
+              url.host?.lowercased() == "url" else { return false }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let querySource = components?.queryItems?
+            .first(where: { ["url", "source"].contains($0.name.lowercased()) })?
+            .value
+
+        let prefix = "cydia://url/"
+        let absolute = url.absoluteString
+        let pathSource: String?
+        if absolute.lowercased().hasPrefix(prefix), absolute.count > prefix.count
+        {
+            let start = absolute.index(absolute.startIndex, offsetBy: prefix.count)
+            let suffix = String(absolute[start...])
+            pathSource = suffix.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init)
+        }
+        else
+        {
+            pathSource = nil
+        }
+
+        guard let rawSource = querySource ?? pathSource,
+              !rawSource.isEmpty else
+        {
+            debugLog("[ClassicCydiaURLRouter] cydia://url link missing source URL: \(url.absoluteString)")
+            return true
+        }
+
+        let decodedSource = rawSource.removingPercentEncoding ?? rawSource
+        guard let sourceURL = URL(string: decodedSource),
+              let scheme = sourceURL.scheme?.lowercased(),
+              scheme == "https" || scheme == "http",
+              sourceURL.host != nil else
+        {
+            debugLog("[ClassicCydiaURLRouter] Rejected invalid source URL: \(decodedSource)")
+            return true
+        }
+
+        debugLog("[ClassicCydiaURLRouter] Adding classic source URL: \(sourceURL.absoluteString)")
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: AppDelegate.addSourceDeepLinkNotification,
+                                            object: nil,
+                                            userInfo: [AppDelegate.addSourceDeepLinkURLKey: sourceURL])
+        }
+        return true
     }
 }
 
@@ -154,7 +194,6 @@ func exportPairingFile(_ urlname: String) {
        let window = windowScene.windows.first, let viewcontroller = window.rootViewController {
         let fm = FileManager.default
         let documentsPath = fm.documentsDirectory.appendingPathComponent("ALTPairingFile.mobiledevicepairing")
-        
         
         guard let data = try? Data(contentsOf: documentsPath) else {
             let toastView = ToastView(text: NSLocalizedString("Failed to find Pairing File!", comment: ""), detailText: nil)
@@ -181,5 +220,32 @@ func exportPairingFile(_ urlname: String) {
             return
         }
         UIApplication.shared.open(callbackUrl)
+    }
+}
+
+extension BrowseViewController
+{
+    /// Opens SideStore's existing source-wide search UI and optionally seeds a
+    /// Cydia package/search query without introducing a second search backend.
+    func activateClassicSearch(query: String?)
+    {
+        self.loadViewIfNeeded()
+        self.title = NSLocalizedString("Search", comment: "")
+        self.navigationItem.titleView = nil
+        self.navigationItem.searchController?.isActive = true
+
+        guard let query, !query.isEmpty else
+        {
+            self.navigationItem.searchController?.searchBar.becomeFirstResponder()
+            return
+        }
+
+        self.navigationItem.searchController?.searchBar.text = query
+        self.searchPredicate = NSPredicate(format: "%K CONTAINS[cd] %@ OR %K CONTAINS[cd] %@ OR %K CONTAINS[cd] %@ OR %K CONTAINS[cd] %@",
+                                           #keyPath(StoreApp.name), query,
+                                           #keyPath(StoreApp.subtitle), query,
+                                           #keyPath(StoreApp.developerName), query,
+                                           #keyPath(StoreApp.bundleIdentifier), query)
+        self.navigationItem.searchController?.searchBar.becomeFirstResponder()
     }
 }
