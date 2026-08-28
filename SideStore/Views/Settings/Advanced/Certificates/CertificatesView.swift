@@ -29,6 +29,7 @@ struct CertificatesView: View {
     @State private var showDeleteConfirmation     = false
     @State private var showExportPasswordPrompt   = false
     @State private var showClearKeyConfirmation   = false
+    @State private var showSigningPackageExporter = false
     @State private var hasInitialLoaded           = false
     @State private var hasCopiedActiveSerial      = false
     
@@ -102,6 +103,14 @@ struct CertificatesView: View {
                     .accessibilityLabel("Create Certificate")
                     .disabled(viewModel.team == nil)
                     
+                    SwiftUI.Button {
+                        showSigningPackageExporter = true
+                    } label: {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                    }
+                    .accessibilityLabel("Export Signing Package for UDID")
+                    .disabled(viewModel.team == nil || viewModel.session == nil)
+
                     SwiftUI.Button {
                         importCertificatesAction()
                     } label: {
@@ -246,6 +255,18 @@ struct CertificatesView: View {
             }
         }
         #endif
+        .sheet(isPresented: $showSigningPackageExporter) {
+            if let team = viewModel.team, let session = viewModel.session {
+                ManualSigningPackageView(
+                    certificates: viewModel.certificates,
+                    team: team,
+                    session: session
+                )
+            } else {
+                Text("Sign in to your Apple account before exporting a signing package.")
+                    .padding()
+            }
+        }
         .sheet(item: $keyTextImportItem) { item in
             PrivateKeyTextInputView(
                 text: $privateKeyTextInput,
