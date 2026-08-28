@@ -12,6 +12,7 @@ struct ManualSigningPackageView: View {
     @State private var selectedSerial = ""
     @State private var deviceName = ""
     @State private var udid = ""
+    @State private var deviceKind = ExportDeviceKind.iPhone
     @State private var appIDName = "Signing Package"
     @State private var bundleIdentifier = ""
     @State private var p12Password = ""
@@ -37,6 +38,12 @@ struct ManualSigningPackageView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
+                    Picker("Device type", selection: $deviceKind) {
+                        ForEach(ExportDeviceKind.allCases) { kind in
+                            Text(kind.rawValue).tag(kind)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                     Text("The entered UDID is checked against your team and registered only when it is missing. SideStore does not substitute this device's UDID.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
@@ -157,7 +164,7 @@ struct ManualSigningPackageView: View {
                     _ = try await DeveloperPortalService.shared.registerDevice(
                         name: cleanedDeviceName,
                         identifier: cleanedUDID,
-                        type: .iphone,
+                        type: deviceKind.altDeviceType,
                         team: team,
                         session: session
                     )
@@ -185,7 +192,7 @@ struct ManualSigningPackageView: View {
                 status = "Requesting provisioning profile..."
                 var profile = try await ALTAppleAPI.shared.fetchProvisioningProfile(
                     for: appID,
-                    deviceType: .iphone,
+                    deviceType: deviceKind.altDeviceType,
                     team: team,
                     session: session
                 )
@@ -201,7 +208,7 @@ struct ManualSigningPackageView: View {
                     try await ALTAppleAPI.shared.deleteProvisioningProfile(profile, for: team, session: session)
                     profile = try await ALTAppleAPI.shared.fetchProvisioningProfile(
                         for: appID,
-                        deviceType: .iphone,
+                        deviceType: deviceKind.altDeviceType,
                         team: team,
                         session: session
                     )
@@ -277,6 +284,20 @@ struct ManualSigningPackageView: View {
             popover.permittedArrowDirections = []
         }
         presenter.present(activity, animated: true)
+    }
+
+
+    private enum ExportDeviceKind: String, CaseIterable, Identifiable {
+        case iPhone
+        case iPad
+
+        var id: Self { self }
+        var altDeviceType: ALTDeviceType {
+            switch self {
+            case .iPhone: return .iPhone
+            case .iPad: return .iPad
+            }
+        }
     }
 
     private enum ExportError: LocalizedError {
